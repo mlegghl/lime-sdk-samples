@@ -3,15 +3,14 @@ const HOST_URL = 'http://localhost:8777'
 
 function refresh(state) {
     console.log('refresh', state);
-    if (state.error) {
-        document.querySelector('#errorMsg').visible = true;
-    } else {
-        document.querySelector('#errorMsg').visible = false;
-    }
+
+    // show error message on failure
+    document.querySelector('#errorMsg').visible = state.error && !!state.error.length
 
     let login = document.querySelector('#login');
     let authenticated = document.querySelector('#authenticated');
     let incall = document.querySelector('#incall');
+    let flowContainer = document.querySelector('#flow-container');
 
     if (state.state == STATE_LOGIN) {
         show(login);
@@ -22,8 +21,7 @@ function refresh(state) {
         show(authenticated);
         hide(incall);
     } else if (state.state == STATE_IN_CALL) {
-        hide(login);
-        hide(authenticated);
+        hide(flowContainer);
 
         // update the pin code
         let sessionPincode = document.querySelector('#session-pincode');
@@ -100,8 +98,13 @@ function randomName() {
     return `User_${n}`;
 }
 
+function toggleModal() {
+    let modal = document.querySelector('#pin-modal');
+    modal.classList.contains('is-active') ? modal.classList.remove('is-active') : modal.classList.add('is-active'); 
+}
+
 function onLogin(target, state) {
-    let email = document.querySelector('#username').value;
+    let email = document.querySelector('#email').value;
     let params = new URLSearchParams({'email': email});
     
     return fetch(`${HOST_URL}/auth?${params.toString()}`)
@@ -113,6 +116,8 @@ function onLogin(target, state) {
             }
         })
         .then(response => {
+            let name = document.querySelector('#username');
+            name.textContent = response.name;
             let newState = {
                 ...state,
                 state: STATE_AUTHENTICATED, // move to authenticated state
@@ -124,7 +129,6 @@ function onLogin(target, state) {
 }
 
 function createSession(target, state) {
-    let email = document.querySelector('#contact').value;
 
     return fetch(`${HOST_URL}/session`, {
         method: 'POST',
@@ -132,7 +136,7 @@ function createSession(target, state) {
             'Content-type': 'application/json',
             'Authorization': state.token
         },
-        body: JSON.stringify({'contact_email': email})
+        body: JSON.stringify({'contact_email': ''})
     }).then(response => {
         if (response.ok) {
             return response.json()

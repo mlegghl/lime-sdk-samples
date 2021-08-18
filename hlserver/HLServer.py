@@ -94,7 +94,8 @@ class Server(http.server.BaseHTTPRequestHandler):
         user = api.auth_user(email)
 
         response = {
-            'token': user.token
+            'token': user.token,
+            'name': user.name
         }
         
         return (
@@ -121,22 +122,17 @@ class Server(http.server.BaseHTTPRequestHandler):
     """
     def POST_session(self, _):
         auth = self.headers.get('authorization').strip()
+        print(auth)
         if auth is None:
             return (400, {'content-type': 'text/plain'}, 'Missing Authorization header')
-        
-        data = self.post_data()
-        if 'contact_email' not in data:
-            return (400, {'content-type': 'text/plain'}, 'Missing post data. Missing contact_email parameter')
-
-        contact_email = data['contact_email']
 
         api = HLAPI.HLAPI(APIKEY, PARTNER_KEY, ENTERPRISE_ID)
-        user2 = api.auth_user(contact_email)
 
-        user1 = HLAPI.HLAPI.User(0, '', '', auth)
+        # user1 = HLAPI.HLAPI.User(0, '', '', auth)
+        # user2 = HLAPI.HLAPI.User(0, '', '', user2token)
         
         # create a session
-        session = api.make_session(user1, user2)
+        session = api.create_session(auth)
 
         # generate a 4-digit pin
         pin = self.generate_pin()
@@ -174,7 +170,8 @@ class Server(http.server.BaseHTTPRequestHandler):
     def GET_session(self, params):
         auth = self.headers.get('authorization').strip()
         if auth is None:
-            return (400, {'content-type': 'text/plain'}, 'Missing Authorization header')
+            print('No auth, get anon auth')
+            auth = api.anonymous_auth()
         
         if 'sid' not in params:
             return (400, {'content-type': 'text/plain'}, 'Missing query parameters sid')
@@ -217,7 +214,7 @@ class Router:
     routes = {
         'GET': {
             '/auth': Server.GET_auth,
-            '/session': Server.GET_session
+            '/session': Server.GET_session,
         },
         'POST': {
             '/session': Server.POST_session

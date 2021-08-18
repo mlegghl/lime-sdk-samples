@@ -1,123 +1,159 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>Help Lightning Call SDK</title>
-    
-    <!-- Load help lightning JS SDK -->
-    <script src="https://helplightning.net/sdk/helplightning.min.js"></script>
-    <script src="https://helplightning.net/sdk/opentok-enterprise/opentok.min.js"></script>
-    <script src="https://helplightning.net/sdk/pdf_viewer/build/pdf.min.js"></script>
-    <script src="https://helplightning.net/sdk/opencv/opencv.js" async></script>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <script src="./sample.js"></script>
-    <script>
-      const STATE_LOGIN = 0;
-      const STATE_AUTHENTICATED = 1;
-      const STATE_IN_CALL = 2;
+  <title>Help Lightning Call SDK</title>
+
+  <!-- Load help lightning JS SDK -->
+  <script src="./helplightning.bundle.min.js"></script>
+  <!-- <script src="https://helplightning.net/sdk/opentok-enterprise/opentok.min.js"></script>
+  <script src="https://helplightning.net/sdk/pdf_viewer/build/pdf.min.js"></script> -->
+  <script src="https://helplightning.net/sdk/opencv/opencv.js" async></script>
+
+  <script src="./sample.js"></script>
+  <script>
+    const STATE_LOGIN = 0;
+    const STATE_AUTHENTICATED = 1;
+    const STATE_IN_CALL = 2;
+
+    var state = {
+      state: STATE_LOGIN,
+      error: null,
+      token: null,
+      session: null,
+      callClient: null
+    };
+  </script>
+  <style>
+    html,
+    body {
+      height: 100%;
+    }
+    #flow-container {
+      padding: 25px;
+    }
+    #login, #authenticated {
+      padding: 10px;
+    }
+    #logo {
+      display: flex; justify-content: center; align-items: center; width: 100%;
+    }
+  </style>
+
+  <link type="text/css" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bulma/0.9.3/css/bulma.min.css" />
+  <script defer src="https://use.fontawesome.com/releases/v5.3.1/js/all.js"></script>
+</head>
+
+<body onload="refresh(state);">
+  <div id="main">
+    <!-- add in error handling logic -->
+    <div id="errorMsg" />
+
+    <!-- This container includes the authorization flow -->
+    <div id="flow-container">
+      <div class="columns">
+        <div class="column">
+          <span />
+        </div>
+        <div class="column">
+          <div class="card">
+            <header class="card-header">
+              <div id="logo">
+                <img src="./assets/logo.png" style="width:215px;"/>
+              </div>
+            </header>
+            <div class="card-content">
+              <div class="content">
+                <div id="login">
+                  <fieldset style="width: 100%;">
+                    <div class="field">
+                      <label class="label" htmlFor="email">Sign In</label>
+                      <div class="control has-icons-left has-icons-right">
+                        <input class="input is-info" type="text" id="email" placeholder="Email" value=""></input>
+                        <span class="icon is-small is-left">
+                          <i class="fas fa-envelope"></i>
+                        </span>
+                      </div>
+                    </div>
+                    <div class="control">
+                      <button id="login-btn" class="button is-info is-fullwidth" onclick="onLogin(this, state).then(newState => {state = newState; refresh(state)}); return false;">Next</button>
+                    </div>
+                  </fieldset>
+        
+                  <br />
+                  <hr />
+                  <br />
+        
+                  <div class="control">
+                    <button id="pin-btn" class="button is-info is-fullwidth" onclick="toggleModal()">
+                      Join Session With Pin
+                    </button>
+                  </div>
+                </div>
+                <div id="authenticated">
+                  <div style="text-align: center;">
+                    <label>Welcome, <span id="username"></span></label>
+                  </div>
+                  <br />
+                  <button id="create-session-btn" class="button is-info is-fullwidth" onclick="createSession(this, state).then(newState => {state = newState; refresh(state)}); return false;">
+                    Create New Session
+                  </button>
       
-      var state = {
-          state: STATE_LOGIN,
-          error: null,
-          token: null,
-          session: null,
-          callClient: null
-      };
-    </script>
-    <style>
-      html, body {
-        height: 100%;
-      }
-    </style>
-
-    <link type="text/css" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bulma/0.7.2/css/bulma.min.css" />
-    <script defer src="https://use.fontawesome.com/releases/v5.3.1/js/all.js"></script>
-  </head>
-
-  <body onload="refresh(state);">
-    <div id="main">
-      <div id="errorMsg" />
-      <div id="login">
-        <div class="columns">
-          <div class="column">
-            <span />
-          </div>
-          <div class="column">
-            <fieldset style="border: 0 none;">
-              <div class="field">
-                <label class="label" htmlFor="username">Username</label>
-                <div class="control has-icons-left has-icons-right">
-                  <input class="input is-success" type="text" id="username" placeholder="joe@example.com" value=""></input>
-                  <span class="icon is-small is-left">
-                    <i class="fas fa-envelope"></i>
-                  </span>
+                  <br />
+                  <hr />
+                  <br />
+      
+                  <button id="pin-btn" class="button is-info is-fullwidth" onclick="toggleModal()">
+                    Join Session With PIN
+                  </button>
+                </div>
+                <div id="pin-modal" class="modal">
+                  <div class="modal-background"></div>
+                  <div class="modal-card">
+                    <header class="modal-card-head">
+                      <p class="modal-card-title">Enter PIN Code</p>
+                      <button class="delete" aria-label="close" onclick="toggleModal()""></button>
+                    </header>
+                    <section class="modal-card-body">
+                      <fieldset style="border: 0 none; padding: 25px;">
+                        <div class="field">
+                          <div class="control has-icons-left has-icons-right">
+                            <input class="input is-info" type="text" id="pincode"></input>
+                            <span class="icon is-small is-left">
+                              <i class="fas fa-key"></i>
+                            </span>
+                          </div>
+                        </div>
+                      </fieldset>
+                    </section>
+                    <footer class="modal-card-foot">
+                      <button id="join-session-btn" class="button is-info"
+                            onclick="joinSession(this, state).then(newState => {state = newState; refresh(state)}); return false;">Join Session</button>
+                      <button class="button" onclick="toggleModal()">Cancel</button>
+                    </footer>
+                  </div>
                 </div>
               </div>
-              <div class="control">
-                <button id="login-btn" class="button is-primary" onclick="onLogin(this, state).then(newState => {state = newState; refresh(state)}); return false;">Log in</button>
-              </div>
-            </fieldset>
-          </div>
-          <div class="column">
-            <span />
+            </div>
           </div>
         </div>
-      </div>
-      <div id="authenticated">
-        <div class="columns">
-          <div class="column">
-            <span />
-          </div>
-          <div class="column">
-            <fieldset style="border: 0 none;">
-              <div class="field">
-                <label class="label" htmlFor="contact">Create Session With (Enter email address of contact)</label>
-                <div class="control has-icons-left has-icons-right">
-                  <input class="input is-success" type="text" id="contact" placeholder="jane@example.com" value=""></input>
-                  <span class="icon is-small is-left">
-                    <i class="fas fa-envelope"></i>
-                  </span>
-                </div>
-              </div>
-              <div class="control">
-                <button id="create-session-btn" class="button is-primary" onclick="createSession(this, state).then(newState => {state = newState; refresh(state)}); return false;">Create New Session</button>
-              </div>
-            </fieldset>
-
-            <br />
-            <h1>OR</h1>
-            <br />
-
-            <fieldset style="border: 0 none;">
-              <div class="field">
-                <label class="label" htmlFor="pincode">Enter PIN Code</label>
-                <div class="control has-icons-left has-icons-right">
-                  <input class="input is-success" type="text" id="pincode"></input>
-                  <span class="icon is-small is-left">
-                    <i class="fas fa-key"></i>
-                  </span>
-                </div>
-              </div>
-              <div class="control">
-                <button id="join-session-btn" class="button is-primary" onclick="joinSession(this, state).then(newState => {state = newState; refresh(state)}); return false;">Join Session</button>
-              </div>
-            </fieldset>
-            
-          </div>
-          <div class="column">
-            <span />
-          </div>
+        <div class="column">
+          <span />
         </div>
-
-      </div>
-      <div id="incall" style="overflow: hidden;">
-        <center>
-          <div class="pincode">Session PIN: <span id="session-pincode"></span></div>
-        </center>
-        <div id="hl-call" style="width: 100vw; height: calc(100vh - 50px);"></div>
       </div>
     </div>
-  </body>
+
+    <!-- The main in-call component -->
+    <div id="incall" style="overflow: hidden;">
+      <center>
+        <div class="pincode">Session PIN: <span id="session-pincode"></span></div>
+      </center>
+      <div id="hl-call" style="width: 100vw; height: calc(100vh - 50px);"></div>
+    </div>
+  </div>
+</body>
+
 </html>

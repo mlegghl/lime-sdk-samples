@@ -51,6 +51,29 @@ class HLAPI:
         return HLAPI.User(user1_details['id'], user1_details['name'], email, user1_details['token'])
 
     """
+    Anonymously authenticate a user
+    enterprise and return a token
+    """
+    def anonymous_auth(self):
+        resp = self.do_POST("/v1/anonymous/auth", {'authorization': self.make_jwt()})
+
+        return resp['token']
+
+    """
+    Create a dirty session
+    """
+    def create_session(self, auth):
+        session1 = self.do_POST("/v1/sessions", {'authorization': auth}, { 'force_new': True })
+        print(session1['token'])
+        print(auth)
+        session_info = self.do_POST('/v1/session/video', {'authorization': session1['token']}, {'user_token': auth})
+        print(session_info)
+
+        # print(session_info)
+        return HLAPI.SessionInfo(session1['id'], '', '', session1['token'], '',
+                                 HLAPI.User(0, '', '', session1['users'][0]['token']), HLAPI.User(0, '', '', ''))
+
+    """
     Create a session between two users.
     Return the Session Info
     """
