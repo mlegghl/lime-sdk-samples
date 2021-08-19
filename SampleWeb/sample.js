@@ -166,9 +166,7 @@ function joinSession(target, state) {
     
     return fetch(`${HOST_URL}/session?${params.toString()}`, {
         method: 'GET',
-        headers: {
-            'Authorization': state.token
-        }
+        headers: { 'Authorization': state.token || '' }
     }).then(response => {
         if (response.ok) {
             return response.json();

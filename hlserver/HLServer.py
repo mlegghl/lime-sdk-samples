@@ -122,7 +122,6 @@ class Server(http.server.BaseHTTPRequestHandler):
     """
     def POST_session(self, _):
         auth = self.headers.get('authorization').strip()
-        print(auth)
         if auth is None:
             return (400, {'content-type': 'text/plain'}, 'Missing Authorization header')
 
@@ -168,9 +167,9 @@ class Server(http.server.BaseHTTPRequestHandler):
     url: The URL of the Help Lightning GSS server
     """
     def GET_session(self, params):
+        api = HLAPI.HLAPI(APIKEY, PARTNER_KEY, ENTERPRISE_ID)
         auth = self.headers.get('authorization').strip()
-        if auth is None:
-            print('No auth, get anon auth')
+        if not auth:
             auth = api.anonymous_auth()
         
         if 'sid' not in params:
@@ -179,14 +178,15 @@ class Server(http.server.BaseHTTPRequestHandler):
         pin = params['sid'][0]
         if pin not in SessionIDS.ids:
             return (400, {'content-type': 'text/plain'}, 'Invalid sid')
-
+        
         session = SessionIDS.ids[pin]
+        session2 = api.get_session(auth, session.sid)
 
         content = {
             'sid': pin,
             'session_id': session.sid,
-            'session_token': session.participant2.session_token,
-            'user_token': session.participant2.user_token,
+            'session_token': session.participant1.session_token,
+            'user_token': auth,
             'url': session.url,
             'ws_url': session.ws_url
         }

@@ -64,14 +64,21 @@ class HLAPI:
     """
     def create_session(self, auth):
         session1 = self.do_POST("/v1/sessions", {'authorization': auth}, { 'force_new': True })
-        print(session1['token'])
-        print(auth)
-        session_info = self.do_POST('/v1/session/video', {'authorization': session1['token']}, {'user_token': auth})
-        print(session_info)
+        session_info = self.do_GET('/v1r1/session/auth', {'authorization': session1['token']})
 
-        # print(session_info)
-        return HLAPI.SessionInfo(session1['id'], '', '', session1['token'], '',
-                                 HLAPI.User(0, '', '', session1['users'][0]['token']), HLAPI.User(0, '', '', ''))
+        return HLAPI.SessionInfo(session1['id'], session_info['gss_info']['server'],
+                                 session_info['gss_info']['wsserver'],
+                                 session_info['gss_info']['token'], '',
+                                 HLAPI.User(0, '', '', session1['users'][0]['token']), HLAPI.User(0, '', '', ''))     
+
+    """
+    Create a dirty session
+    """
+    def get_session(self, auth, id):
+        print(auth)
+        print(id)
+        session = self.do_GET(f'/v1/sessions/{id}', {'authorization': auth})
+        return session                       
 
     """
     Create a session between two users.
